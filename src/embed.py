@@ -56,10 +56,19 @@ def embed_texts(
     *,
     mode: str = POOL_MODE,
     dtype: torch.dtype = torch.float32,
+    max_length: int | None = None,
 ) -> torch.Tensor:
-    """Return one vector per text: [B, hidden_size]."""
+    """Return one vector per text: [B, hidden_size].
+
+    If max_length is set, truncate (and pad) to that many tokens — critical
+    for long BEV states on Mac so batches stay in memory and finish fast.
+    """
     model.to(dtype=dtype)
-    batch = tokenizer(texts, return_tensors="pt", padding=True)
+    tok_kwargs: dict = {"return_tensors": "pt", "padding": True}
+    if max_length is not None:
+        tok_kwargs["truncation"] = True
+        tok_kwargs["max_length"] = max_length
+    batch = tokenizer(texts, **tok_kwargs)
     batch = {k: v.to(device) for k, v in batch.items()}
 
     with torch.no_grad():

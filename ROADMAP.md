@@ -41,7 +41,7 @@ results/    eval JSONs and plots
 | # | Milestone | Week | Sessions | Key number | Status |
 |---|---|---|---|---|---|
 | 0 | Setup and first embedding | 1 | 2 | ~16 ms/sent fp32 @ batch 16 on MPS | ☑ |
-| 1 | Zero-shot baseline | 1 | 4 | top-1 accuracy, latency | ☐ |
+| 1 | Zero-shot baseline | 1 | 4 | top-1 **52.5%** labeled; p50 ~1.0s | ☑ |
 | 2 | Bi-encoder heads + InfoNCE | 2–3 | 8 | accuracy vs baseline | ☐ |
 | 3 | Hard negatives + order invariance | 3–4 | 6 | accuracy, shuffled accuracy | ☐ |
 | 4 | Scale up + LoRA on a T4 | 5 | 5 | accuracy / cost / time per setup | ☐ |
@@ -51,9 +51,9 @@ Fill in as I go:
 
 | Metric | Baseline (M1) | Heads (M2) | + Hard negs (M3) | + LoRA (M4) |
 |---|---|---|---|---|
-| Top-1 accuracy | **47.5%** | ___ | ___ | ___ |
+| Top-1 accuracy | **52.5%** (labeled) | ___ | ___ | ___ |
 | Shuffled-option accuracy | ___ | ___ | ___ | ___ |
-| Latency per decision (ms) | ___ | ___ | ___ | ___ |
+| Latency per decision (ms) | **p50 ~1035** (labeled, fp16, max_len 256) | ___ | ___ | ___ |
 
 ---
 
@@ -79,7 +79,7 @@ Fill in as I go:
 - [x] **Day 3:** load `avbiswas/bev-decision`, print the columns and 5 rows, and write `src/data.py` that turns its choice/noul questions into `(state, question, choices, correct_idx)`. Save a fixed 200-row eval split to `data/eval_bev.jsonl` (seeded, never trained on). (`tau/commonsense_qa` deferred — bev is the primary state/context set.)
 - [x] **Day 4:** write `pool()` with `mean` and `last_token` modes (masking padding properly). Check them on 20 pairs I write by hand (10 should match, 10 shouldn't) and print the cosine gap for each mode. Winner on gap: **mean** (0.179 vs last_token 0.140).
 - [x] **Day 5:** `src/eval.py`: embed the state and each option, pick the argmax cosine, and report top-1 accuracy on the 200-row bev set, plus random-guess accuracy for comparison. Result: **47.5%** top-1 vs **39.4%** chance (+8.1); choice 32%, noul 65%.
-- [ ] **Day 6:** add timing (ms per decision, p50 / p95) and a second prompt format (e.g. prefixing `"Situation: "` / `"Option: "`). Log which pooling and format wins.
+- [x] **Day 6:** timing + prompt formats. Winner: **labeled** 52.5% (plain 47.5%); chance 39.4%; p50 ~1035 ms (fp16, max_length 256). Saved `results/baseline.json`.
 
 **Use:** [Vizuara workshop 21:06 + 55:20](RESOURCES.md#1-start-here) (the one video segment this week) · [E5-Mistral and LLM2Vec, pooling sections](RESOURCES.md#pooling-a-decoder-llm-into-one-vector) · [HF multiple choice guide](RESOURCES.md#scoring-a-list-of-options-order-invariance)
 
