@@ -1,8 +1,13 @@
-# Load Qwen/Qwen3-0.6B on MPS.
-# output_hidden_states belongs on the forward call, not from_pretrained.
-from transformers import AutoTokenizer, AutoModelForCausalLM
+"""Embed texts with Qwen3-0.6B → one vector per text (pooled hidden states)."""
+
+from __future__ import annotations
+
 import time
+
 import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+from pool import pool
 
 device = "mps" if torch.backends.mps.is_available() else "cpu"
 
@@ -13,7 +18,6 @@ if tokenizer.pad_token is None:
 model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen3-0.6B").to(device)
 model.eval()
 
-# 20 short sample sentences (different from each other)
 sample_sentences = [
     "The kitchen timer beeped twice.",
     "Rain tapped softly on the window.",
@@ -39,6 +43,7 @@ sample_sentences = [
 
 batch_sizes = [1, 8, 16]
 precisions = ["fp32", "fp16"]
+POOL_MODE = "mean"  # or "last_token"
 
 
 def sync():
@@ -46,42 +51,67 @@ def sync():
         torch.mps.synchronize()
 
 
-def run_inference(batch_size: int, precision: str):
-    """Tokenize `batch_size` sentences, run one forward, return shape + timings."""
-    dtype = torch.float16 if precision == "fp16" else torch.float32
+def embed_texts(
+    texts: list[str],
+    *,
+    mode: str = POOL_MODE,
+    dtype: torch.dtype = torch.float32,
+) -> torch.Tensor:
+    """Return one vector per text: [B, hidden_size]."""
     model.to(dtype=dtype)
-
-    # Pad to a real batch tensor: [B, seq_len] — lists of 1-row tensors won't work
-    texts = sample_sentences[:batch_size]
     batch = tokenizer(texts, return_tensors="pt", padding=True)
-    # Moving all the tensors to the device on which model exists
     batch = {k: v.to(device) for k, v in batch.items()}
 
-    # Running the model in inference mode
     with torch.no_grad():
-        # Warmup (skip first MPS kernel compile in the timed number)
-        _ = model(**batch, output_hidden_states=True)
-        sync()
-
-        sync()
-        start = time.monotonic()
         out = model(**batch, output_hidden_states=True)
-        sync()
-        elapsed_ms = (time.monotonic() - start) * 1000
-
-    hidden = out.hidden_states[-1]  # [B, seq_len, hidden_size]
-    return hidden.shape, elapsed_ms, elapsed_ms / batch_size
+        hidden = out.hidden_states[-1]  # [B, L, H]
+        return pool(hidden, batch["attention_mask"], mode=mode)
 
 
-print(f"device={device}  hidden_size={model.config.hidden_size}")
-print(f"{'batch':>6}  {'prec':>5}  {'hidden_shape':>22}  {'total_ms':>10}  {'ms/sent':>10}")
+def run_inference(batch_size: int, precision: str, mode: str = POOL_MODE):
+    """Tokenize, forward, pool → one vec/text; return shapes + timings."""
+    dtype = torch.float16 if precision == "fp16" else torch.float32
+    texts = sample_sentences[:batch_size]
 
-for precision in precisions:
-    for batch_size in batch_sizes:
-        shape, total_ms, ms_per_sent = run_inference(batch_size, precision)
-        print(
-            f"{batch_size:>6}  {precision:>5}  {str(tuple(shape)):>22}  "
-            f"{total_ms:>10.2f}  {ms_per_sent:>10.2f}"
-        )
+    # Warmup
+    _ = embed_texts(texts, mode=mode, dtype=dtype)
+    sync()
 
-model.to(dtype=torch.float32)
+    sync()
+    start = time.monotonic()
+    vectors = embed_texts(texts, mode=mode, dtype=dtype)
+    sync()
+    elapsed_ms = (time.monotonic() - start) * 1000
+
+    # Also report raw hidden shape for comparison
+    batch = tokenizer(texts, return_tensors="pt", padding=True)
+    seq_len = batch["input_ids"].shape[1]
+    hidden_shape = (batch_size, seq_len, model.config.hidden_size)
+    return hidden_shape, tuple(vectors.shape), elapsed_ms, elapsed_ms / batch_size
+
+
+if __name__ == "__main__":
+    print(f"device={device}  hidden_size={model.config.hidden_size}  pool={POOL_MODE}")
+    print(
+        f"{'batch':>6}  {'prec':>5}  {'token_hidden':>18}  {'text_vec':>14}  "
+        f"{'total_ms':>10}  {'ms/sent':>10}"
+    )
+
+    for precision in precisions:
+        for batch_size in batch_sizes:
+            hidden_shape, vec_shape, total_ms, ms_per_sent = run_inference(
+                batch_size, precision
+            )
+            print(
+                f"{batch_size:>6}  {precision:>5}  {str(hidden_shape):>18}  "
+                f"{str(vec_shape):>14}  {total_ms:>10.2f}  {ms_per_sent:>10.2f}"
+            )
+
+    # Demo: 3 texts → 3 vectors
+    demo = sample_sentences[:3]
+    vecs = embed_texts(demo, mode=POOL_MODE, dtype=torch.float32)
+    print(f"\nDemo: {len(demo)} texts → vectors shape {tuple(vecs.shape)}")
+    for text, v in zip(demo, vecs):
+        print(f"  {tuple(v.shape)}  {text[:48]!r}")
+
+    model.to(dtype=torch.float32)

@@ -77,7 +77,7 @@ Fill in as I go:
 **Goal:** score a state against its options with no training at all (frozen encoder + pooling + cosine), so every later step has a number to beat.
 
 - [x] **Day 3:** load `avbiswas/bev-decision`, print the columns and 5 rows, and write `src/data.py` that turns its choice/noul questions into `(state, question, choices, correct_idx)`. Save a fixed 200-row eval split to `data/eval_bev.jsonl` (seeded, never trained on). (`tau/commonsense_qa` deferred — bev is the primary state/context set.)
-- [ ] **Day 4:** write `pool()` with `mean` and `last_token` modes (masking padding properly). Check them on 20 pairs I write by hand (10 should match, 10 shouldn't) and print the cosine gap for each mode.
+- [x] **Day 4:** write `pool()` with `mean` and `last_token` modes (masking padding properly). Check them on 20 pairs I write by hand (10 should match, 10 shouldn't) and print the cosine gap for each mode. Winner on gap: **mean** (0.179 vs last_token 0.140).
 - [ ] **Day 5:** `src/eval.py`: embed the state and each option, pick the argmax cosine, and report top-1 accuracy on both 200-row sets, plus random-guess accuracy for comparison.
 - [ ] **Day 6:** add timing (ms per decision, p50 / p95) and a second prompt format (e.g. prefixing `"Situation: "` / `"Option: "`). Log which pooling and format wins.
 
