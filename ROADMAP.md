@@ -40,7 +40,7 @@ results/    eval JSONs and plots
 
 | # | Milestone | Week | Sessions | Key number | Status |
 |---|---|---|---|---|---|
-| 0 | Setup and first embedding | 1 | 2 | ms per embedding on MPS | ☐ |
+| 0 | Setup and first embedding | 1 | 2 | ~16 ms/sent fp32 @ batch 16 on MPS | ☑ |
 | 1 | Zero-shot baseline | 1 | 4 | top-1 accuracy, latency | ☐ |
 | 2 | Bi-encoder heads + InfoNCE | 2–3 | 8 | accuracy vs baseline | ☐ |
 | 3 | Hard negatives + order invariance | 3–4 | 6 | accuracy, shuffled accuracy | ☐ |
@@ -62,7 +62,7 @@ Fill in as I go:
 **Goal:** a clean environment and one script that turns text into a vector on the Mac's GPU and tells me how long it took.
 
 - [x] **Day 1:** `uv init`, add `torch transformers datasets accelerate`. Write `scripts/check_mps.py` that prints `torch.backends.mps.is_available()` and multiplies two 4096×4096 matrices on CPU vs MPS, timing both.
-- [ ] **Day 2:** `src/embed.py`: load `Qwen/Qwen3-0.6B` with `output_hidden_states=True`, embed 20 sentences, print the hidden-state shape, and time ms per sentence at batch sizes 1, 8 and 16 in fp32 vs fp16.
+- [x] **Day 2:** `src/embed.py`: load `Qwen/Qwen3-0.6B` with `output_hidden_states=True`, embed 20 sentences, print the hidden-state shape, and time ms per sentence at batch sizes 1, 8 and 16 in fp32 vs fp16.
 
 **Use:** [Qwen3-0.6B model card](RESOURCES.md#5-models-and-datasets) · [bev-train setup section](RESOURCES.md#4-code-to-read-and-run)
 
