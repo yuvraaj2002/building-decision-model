@@ -51,7 +51,7 @@ Fill in as I go:
 
 | Metric | Baseline (M1) | Heads (M2) | + Hard negs (M3) | + LoRA (M4) |
 |---|---|---|---|---|
-| Top-1 accuracy | ___ | ___ | ___ | ___ |
+| Top-1 accuracy | **47.5%** | ___ | ___ | ___ |
 | Shuffled-option accuracy | ___ | ___ | ___ | ___ |
 | Latency per decision (ms) | ___ | ___ | ___ | ___ |
 
@@ -78,7 +78,7 @@ Fill in as I go:
 
 - [x] **Day 3:** load `avbiswas/bev-decision`, print the columns and 5 rows, and write `src/data.py` that turns its choice/noul questions into `(state, question, choices, correct_idx)`. Save a fixed 200-row eval split to `data/eval_bev.jsonl` (seeded, never trained on). (`tau/commonsense_qa` deferred — bev is the primary state/context set.)
 - [x] **Day 4:** write `pool()` with `mean` and `last_token` modes (masking padding properly). Check them on 20 pairs I write by hand (10 should match, 10 shouldn't) and print the cosine gap for each mode. Winner on gap: **mean** (0.179 vs last_token 0.140).
-- [ ] **Day 5:** `src/eval.py`: embed the state and each option, pick the argmax cosine, and report top-1 accuracy on both 200-row sets, plus random-guess accuracy for comparison.
+- [x] **Day 5:** `src/eval.py`: embed the state and each option, pick the argmax cosine, and report top-1 accuracy on the 200-row bev set, plus random-guess accuracy for comparison. Result: **47.5%** top-1 vs **39.4%** chance (+8.1); choice 32%, noul 65%.
 - [ ] **Day 6:** add timing (ms per decision, p50 / p95) and a second prompt format (e.g. prefixing `"Situation: "` / `"Option: "`). Log which pooling and format wins.
 
 **Use:** [Vizuara workshop 21:06 + 55:20](RESOURCES.md#1-start-here) (the one video segment this week) · [E5-Mistral and LLM2Vec, pooling sections](RESOURCES.md#pooling-a-decoder-llm-into-one-vector) · [HF multiple choice guide](RESOURCES.md#scoring-a-list-of-options-order-invariance)

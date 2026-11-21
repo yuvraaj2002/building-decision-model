@@ -6,3 +6,4 @@
 | 2026-11-21 | `src/embed.py` | hidden `(16, 10, 1024)`; fp32 batch16 **16.1 ms/sent**; fp16 batch8 **14.5 ms/sent** | Day 2 |
 | 2026-11-21 | `src/data.py` | 202,727 converted (choice+noul); **200** seeded eval → `data/eval_bev.jsonl` | Day 3; CSQA deferred |
 | 2026-11-21 | `scripts/pool_check.py` | mean gap **0.179**; last_token gap **0.140** → use **mean** | Day 4 |
+| 2026-11-21 | `src/eval.py --save` | top-1 **47.5%** (95/200); chance **39.4%**; lift **+8.1** | Day 5; choice 32%, noul 65% |
