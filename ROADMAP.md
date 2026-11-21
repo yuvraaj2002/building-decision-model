@@ -17,6 +17,7 @@ One session = one hour:
 | 10 min | Log: one line in `notes/log.md` (date, what I ran, the number, what broke) and commit |
 
 Rules:
+
 - **Video rule:** at most one video segment a week, and only the timestamp the current milestone points to. If I want more, I write code instead.
 - **No number, not done.** If a session doesn't produce a measurement, the next session finishes it before moving on.
 - **Small first.** Every script runs on 20 rows before it runs on 2,000.
@@ -60,7 +61,7 @@ Fill in as I go:
 
 **Goal:** a clean environment and one script that turns text into a vector on the Mac's GPU and tells me how long it took.
 
-- [ ] **Day 1:** `uv init`, add `torch transformers datasets accelerate`. Write `scripts/check_mps.py` that prints `torch.backends.mps.is_available()` and multiplies two 4096×4096 matrices on CPU vs MPS, timing both.
+- [x] **Day 1:** `uv init`, add `torch transformers datasets accelerate`. Write `scripts/check_mps.py` that prints `torch.backends.mps.is_available()` and multiplies two 4096×4096 matrices on CPU vs MPS, timing both.
 - [ ] **Day 2:** `src/embed.py`: load `Qwen/Qwen3-0.6B` with `output_hidden_states=True`, embed 20 sentences, print the hidden-state shape, and time ms per sentence at batch sizes 1, 8 and 16 in fp32 vs fp16.
 
 **Use:** [Qwen3-0.6B model card](RESOURCES.md#5-models-and-datasets) · [bev-train setup section](RESOURCES.md#4-code-to-read-and-run)
@@ -120,7 +121,7 @@ Fill in as I go:
 - [ ] **Day 19:** read bev-train's `tokenization.py` (shared position IDs, choice attention mask), then write a 30-line test showing why a *joint* encoder breaks order invariance without that trick.
 - [ ] **Day 20:** error analysis: dump 30 wrong answers and sort them into buckets (label noise, too many options, long state, etc.).
 
-**Use:** [AVB video 12:25 + 22:49](RESOURCES.md#1-start-here) · [DPR](RESOURCES.md#hard-negatives) · [Deep Sets](RESOURCES.md#scoring-a-list-of-options-order-invariance) · [bev-train](RESOURCES.md#4-code-to-read-and-run) · [Sentence Transformers util (`mine_hard_negatives`)](RESOURCES.md#6-tools-and-compute)
+**Use:** [AVB video 12:25 + 22:49](RESOURCES.md#1-start-here) · [DPR](RESOURCES.md#hard-negatives) · [Deep Sets](RESOURCES.md#scoring-a-list-of-options-order-invariance) · [bev-train](RESOURCES.md#4-code-to-read-and-run) · [Sentence Transformers util (](RESOURCES.md#6-tools-and-compute)`mine_hard_negatives`[)](RESOURCES.md#6-tools-and-compute)
 
 **Done when:** hard negatives add at least ___ points over M2, and shuffled-option accuracy equals normal accuracy (difference of 0 on the bi-encoder, logged across 5 permutations).
 
