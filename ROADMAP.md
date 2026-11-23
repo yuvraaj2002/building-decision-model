@@ -94,7 +94,7 @@ Fill in as I go:
 **Goal:** the CLM idea at Mac scale: frozen Qwen3-0.6B, cached hidden states, two small trainable heads (state and action), trained with InfoNCE and in-batch negatives.
 
 - [x] **Day 7:** `scripts/cache.py`: encode about 5k training rows once (states and options separately) with the winning pooling, and save to `cache/`. Log the encode time and the size on disk. Result: states **[5000, 1024]**, unique options **[4687, 1024]**, encode **1801 s** (~30 min), disk **20.32 MB**.
-- [ ] **Day 8:** `src/heads.py`: two MLP heads (hidden dim → 512, LayerNorm, GELU), L2-normalised outputs, score = cosine × learned scale. Unit test: output shapes, and the score matrix is `[B, B]`.
+- [x] **Day 8:** `src/heads.py`: two MLP heads (hidden dim → 512, LayerNorm, GELU), L2-normalised outputs, score = cosine × learned scale. Unit test: output shapes, and the score matrix is `[B, B]`. Result: `[4, 512]` outs, `[4, 4]` scores, L2≈1, **1,576,961** params.
 - [ ] **Day 9:** write the InfoNCE loss myself (cross-entropy over the `[B, B]` similarity matrix, diagonal = positives). Check it against `MultipleNegativesRankingLoss` on random tensors and make sure the values match.
 - [ ] **Day 10:** `src/train.py`: a training loop on cached vectors, MPS, batch 64. Overfit 32 pairs to about 0 loss first (sanity check).
 - [ ] **Day 11:** train on the 5k cache, evaluate on the 200-row splits every epoch, and log train loss + eval accuracy to `results/m2_run1.json`.
