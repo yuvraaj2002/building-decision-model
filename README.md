@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/banner.png" alt="Building Decision Model" width="100%"></p>
+<p align="center"><img src="assets/banner.svg" alt="Building Decision Model" width="100%"></p>
 
 # Building Decision Model
 
