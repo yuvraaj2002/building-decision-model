@@ -86,7 +86,8 @@ def main() -> int:
     stack_top = base_y + 70
     baseline_y = stack_top + max_h  # bars grow upward from a shared baseline
 
-    colors = ["#a5d8ff", "#ffc9c9", "#ffec99", "#b2f2bb", "#ffc9c9", "#e7f5ff", "#d0bfff"]
+    # Dark-theme muted fills (readable on #121212)
+    colors = ["#1c4966", "#5c2a2a", "#5c5320", "#1e4d2b", "#5c2a2a", "#1a3344", "#3d2a5c"]
     centers: list[tuple[float, float]] = []
 
     for i, (label, dim) in enumerate(layers):

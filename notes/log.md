@@ -10,3 +10,4 @@
 | 2026-11-21 | `src/eval.py --compare-formats --save` | labeled **52.5%** vs plain **47.5%**; p50 ~**1035** / **970** ms | Day 6; fp16 max_len 256; M1 done |
 | 2026-11-22 | `scripts/cache.py --n 5000` | states **[5000, 1024]**; unique options **[4687, 1024]**; encode **1801 s** (~30 min); disk **20.32 MB** | Day 7; labeled/mean/fp16/max_len 256; eval held out |
 | 2026-11-23 | `src/heads.py` | outs **[4, 512]**; score_matrix **[4, 4]**; L2≈1; scale 10; **1,576,961** params | Day 8; ProjectionHead + BiEncoderHeads; diagrams/ + excalidraw-local skill |
+| 2026-11-24 | `src/loss.py` | B=16 random **2.823737** (log 16 = 2.7726); perfect **0.005906**; MNRL diff **0.00e+00** | Day 9; InfoNCE (state→action + symmetric option) verified vs `MultipleNegativesRankingLoss` |

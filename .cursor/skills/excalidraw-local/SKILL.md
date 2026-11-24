@@ -96,11 +96,13 @@ python3 scripts/add_note.py path/to/file.excalidraw.json --text "…"
 1. `validate.py` — fix `pending` images (`--fix-pending-images`).
 2. If still broken, `summarize.py` then recreate refined section into a sibling `*_refined.excalidraw.json` with `new.py` + `append_flow.py`.
 
-## Style defaults
+## Style defaults (dark theme)
 
-- Stroke `#1e1e1e`, flow boxes `#fff8e7`, detail boxes `#e8f4ff`
+- `appState.theme`: `dark`, canvas bg `#121212`
+- Stroke `#e9ecef`, flow boxes `#2b2a24`, detail boxes `#1a2a38`
+- NN bars: muted dark fills (`#1c4966`, `#5c2a2a`, `#5c5320`, …)
 - Font family `8` (Excalidraw default in this editor)
-- Roughness `1` for shapes; separator line dashed grey
+- Roughness `1` for shapes; separator line dashed grey `#868e96`
 
 ## Anti-patterns
 

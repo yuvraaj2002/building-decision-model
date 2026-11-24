@@ -7,6 +7,8 @@ import sys
 from pathlib import Path
 
 from _excalidraw import (
+    DETAIL_BG,
+    FLOW_BG,
     active_elements,
     bounds,
     load,
@@ -75,7 +77,7 @@ def main() -> int:
     rects = []
     for i, step in enumerate(steps):
         x = base_x + i * (box_w + gap)
-        r = make_rect(x, box_y, box_w, box_h, idx(), bg="#fff8e7")
+        r = make_rect(x, box_y, box_w, box_h, idx(), bg=FLOW_BG)
         t = make_text(x + 12, box_y + 18, step, idx(), font_size=16)
         new_els.extend([r, t])
         rects.append(r)
@@ -91,7 +93,7 @@ def main() -> int:
     detail_y = box_y + box_h + 50
     if args.detail:
         cx = base_x + max(0, (len(steps) // 2) - 1) * (box_w + gap)
-        new_els.append(make_rect(cx, detail_y, 320, 160, idx(), bg="#e8f4ff"))
+        new_els.append(make_rect(cx, detail_y, 320, 160, idx(), bg=DETAIL_BG))
         new_els.append(make_text(cx + 14, detail_y + 16, args.detail, idx(), font_size=16))
 
     if args.note:

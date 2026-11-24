@@ -8,6 +8,13 @@ import time
 from pathlib import Path
 from typing import Any
 
+# Dark theme defaults (Decision Model + shared skill).
+BG = "#121212"
+STROKE = "#e9ecef"
+FLOW_BG = "#2b2a24"  # warm muted box
+DETAIL_BG = "#1a2a38"  # cool muted box
+SEP = "#868e96"
+
 EMPTY_DOC = {
     "type": "excalidraw",
     "version": 2,
@@ -17,7 +24,8 @@ EMPTY_DOC = {
         "gridSize": 20,
         "gridStep": 5,
         "gridModeEnabled": False,
-        "viewBackgroundColor": "#ffffff",
+        "viewBackgroundColor": BG,
+        "theme": "dark",
     },
     "files": {},
 }
@@ -84,7 +92,7 @@ def base_el(**kwargs: Any) -> dict[str, Any]:
     el = {
         "id": nid(),
         "angle": 0,
-        "strokeColor": "#1e1e1e",
+        "strokeColor": STROKE,
         "backgroundColor": "transparent",
         "fillStyle": "solid",
         "strokeWidth": 2,
@@ -138,7 +146,7 @@ def make_rect(
     w: float,
     h: float,
     index: str,
-    bg: str = "#fff8e7",
+    bg: str = FLOW_BG,
 ) -> dict[str, Any]:
     return base_el(
         type="rectangle",
@@ -181,7 +189,7 @@ def make_separator(x: float, y: float, width: float, index: str) -> dict[str, An
         width=width,
         height=0,
         index=index,
-        strokeColor="#868e96",
+        strokeColor=SEP,
         strokeWidth=1,
         strokeStyle="dashed",
         roughness=0,
