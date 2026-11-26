@@ -65,6 +65,24 @@ class BiEncoderHeads(nn.Module):
         a = self.encode_actions(actions)
         return self.scale * (s @ a.T)
 
+    def score_options(
+        self,
+        states: torch.Tensor,
+        actions: torch.Tensor,
+        *,
+        scaled: bool = False,
+    ) -> torch.Tensor:
+        """Return [B, N] cosine scores between B states and N unique options."""
+        if states.ndim != 2 or actions.ndim != 2:
+            raise ValueError(
+                f"expected 2D batches, got states {tuple(states.shape)} "
+                f"actions {tuple(actions.shape)}"
+            )
+        s = self.encode_states(states)
+        a = self.encode_actions(actions)
+        cos = s @ a.T
+        return self.scale * cos if scaled else cos
+
     def score_pairs(
         self,
         states: torch.Tensor,
