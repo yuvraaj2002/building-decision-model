@@ -31,18 +31,16 @@ import torch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from config import EmbedConfig  # noqa: E402
 from data import EVAL_PATH, iter_bev_examples, load_jsonl, save_jsonl  # noqa: E402
-from embed import POOL_MODE, embed_texts, sync  # noqa: E402
-from eval import (  # noqa: E402
-    DEFAULT_EMBED_BATCH_SIZE,
-    DEFAULT_MAX_LENGTH,
-    format_choice,
-    format_query,
-)
+from embed import TextEmbedder  # noqa: E402
+from option_batch import OptionBatch  # noqa: E402
 
 CACHE_DIR = ROOT / "cache"
 DEFAULT_N = 5000
 DEFAULT_SEED = 42
+DEFAULT_EMBED_BATCH_SIZE = 8
+DEFAULT_MAX_LENGTH = 256
 PROMPT_FORMAT = "labeled"
 
 
@@ -77,11 +75,10 @@ def collect_train_examples(
 
 
 def embed_unique(
+    embedder: TextEmbedder,
     texts: list[str],
     *,
     embed_batch_size: int,
-    dtype: torch.dtype,
-    max_length: int,
     label: str,
 ) -> torch.Tensor:
     """Embed a list of unique strings in batches → [len(texts), H] on CPU fp16."""
@@ -91,17 +88,12 @@ def embed_unique(
     total = len(texts)
     for i in range(0, total, embed_batch_size):
         chunk = texts[i : i + embed_batch_size]
-        vecs = embed_texts(
-            chunk,
-            mode=POOL_MODE,
-            dtype=dtype,
-            max_length=max_length,
-        )
+        vecs = embedder.embed(chunk)
         parts.append(vecs.detach().to(device="cpu", dtype=torch.float16))
         done = min(i + embed_batch_size, total)
         if done == total or done % (embed_batch_size * 10) < embed_batch_size:
             print(f"  {label}: {done}/{total}", flush=True)
-    sync()
+    embedder.sync()
     return torch.cat(parts, dim=0)
 
 
@@ -125,7 +117,7 @@ def build_cache(
 ) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    query_texts = [format_query(ex, PROMPT_FORMAT) for ex in examples]
+    query_texts = [OptionBatch._format_state(ex) for ex in examples]
 
     # Unique option strings (labeled), shared across rows.
     option_to_id: dict[str, int] = {}
@@ -136,7 +128,7 @@ def build_cache(
     for i, ex in enumerate(examples):
         choice_ids: list[int] = []
         for c in ex["choices"]:
-            labeled = format_choice(c, PROMPT_FORMAT)
+            labeled = OptionBatch._format_option(c)
             if labeled not in option_to_id:
                 option_to_id[labeled] = len(unique_options)
                 unique_options.append(labeled)
@@ -155,28 +147,30 @@ def build_cache(
             }
         )
 
+    embed_cfg = EmbedConfig(dtype=torch.float16, max_length=max_length)
+    embedder = TextEmbedder(embed_cfg)
+
     print(
         f"Encoding {len(query_texts)} queries + {len(unique_options)} unique options "
-        f"(pool={POOL_MODE}, format={PROMPT_FORMAT}, fp16, max_length={max_length})"
+        f"(model={embed_cfg.model_name}, pool={embed_cfg.pool_mode}, format={PROMPT_FORMAT}, "
+        f"fp16, max_length={max_length})"
     )
-    sync()
+    embedder.sync()
     t0 = time.monotonic()
 
     states = embed_unique(
+        embedder,
         query_texts,
         embed_batch_size=embed_batch_size,
-        dtype=torch.float16,
-        max_length=max_length,
         label="states",
     )
     options = embed_unique(
+        embedder,
         unique_options,
         embed_batch_size=embed_batch_size,
-        dtype=torch.float16,
-        max_length=max_length,
         label="options",
     )
-    sync()
+    embedder.sync()
     encode_s = time.monotonic() - t0
 
     pos_tensor = torch.tensor(positive_idx, dtype=torch.long)
@@ -204,7 +198,7 @@ def build_cache(
         "hidden_size": int(states.shape[1]),
         "states_shape": list(states.shape),
         "options_shape": list(options.shape),
-        "pool": POOL_MODE,
+        "pool": embed_cfg.pool_mode,
         "prompt_format": PROMPT_FORMAT,
         "dtype": "float16",
         "max_length": max_length,
