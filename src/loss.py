@@ -1,85 +1,48 @@
-"""Day 9: InfoNCE loss over a [B, B] scaled similarity matrix.
+"""Masked option cross-entropy (InfoNCE over each state's own candidate options).
 
-For a batch of B (state, positive_action) pairs:
-  scores[i, j] = cosine(state_i, action_j) * scale
-  diagonal (i == j) = positive pairs
-  off-diagonal (i != j) = in-batch negatives
+Given:
+  scores     [B, N] scaled cosine scores between B states and N unique options
+  mask       [B, N] bool, True where option j belongs to state i
+  target_idx [B]    long, column index in [0, N) of state i's correct option
 
-InfoNCE is cross-entropy across each row with target label i.
+Positions where mask is False are filled with -inf before cross-entropy so each
+row's softmax only competes over that state's own options.
 """
 
 from __future__ import annotations
 
-import math
-
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
-from heads import BiEncoderHeads, DEFAULT_IN_DIM, DEFAULT_OUT_DIM
 
+class MaskedOptionLoss(nn.Module):
+    """Cross-entropy over per-state valid options using a [B, N] boolean mask."""
 
-def infonce_loss(scores: torch.Tensor, symmetric: bool = False) -> torch.Tensor:
-    """InfoNCE loss on a [B, B] scaled similarity matrix (diagonal = positives).
+    def forward(
+        self,
+        scores: torch.Tensor,
+        mask: torch.Tensor,
+        target_idx: torch.Tensor,
+    ) -> torch.Tensor:
+        if scores.ndim != 2:
+            raise ValueError(f"expected 2D scores [B, N], got {tuple(scores.shape)}")
+        # Mask shape should match the scores and also its datatype should be boolean
+        if mask.shape != scores.shape or mask.dtype != torch.bool:
+            raise ValueError(
+                f"expected bool mask of shape {tuple(scores.shape)}, "
+                f"got {tuple(mask.shape)} ({mask.dtype})"
+            )
+        B = scores.shape[0]
+        if target_idx.shape != (B,):
+            raise ValueError(f"expected target_idx of shape ({B},), got {tuple(target_idx.shape)}")
+        if not mask.any(dim=1).all():
+            raise ValueError("every row in mask must have at least one valid option")
 
-    Args:
-        scores: [B, B] matrix where row i is state i scored against all B actions.
-        symmetric: if True, average state->action and action->state (CLIP-style).
-            False matches Sentence-Transformers MultipleNegativesRankingLoss.
-    """
-    if scores.ndim != 2 or scores.shape[0] != scores.shape[1]:
-        raise ValueError(f"expected square [B, B] matrix, got {tuple(scores.shape)}")
+        batch_idx = torch.arange(B, device=scores.device)
+        if not mask[batch_idx, target_idx].all():
+            raise ValueError("every target_idx must point to a True entry in mask")
 
-    labels = torch.arange(scores.shape[0], device=scores.device)
-    loss_s2a = F.cross_entropy(scores, labels)
-    if not symmetric:
-        return loss_s2a
-    loss_a2s = F.cross_entropy(scores.T, labels)
-    return 0.5 * (loss_s2a + loss_a2s)
-
-
-def _run_unit_checks() -> None:
-    torch.manual_seed(0)
-    B, H, D = 16, DEFAULT_IN_DIM, DEFAULT_OUT_DIM
-    model = BiEncoderHeads(in_dim=H, out_dim=D, init_scale=10.0)
-    states = torch.randn(B, H)
-    actions = torch.randn(B, H)
-
-    s = model.encode_states(states)
-    a = model.encode_actions(actions)
-    scores = model.score_matrix(states, actions)
-
-    loss_val = infonce_loss(scores, symmetric=False)
-    loss_sym = infonce_loss(scores, symmetric=True)
-    expected_random = math.log(B)
-
-    # Perfect-match sanity check: diagonal cosine = 1.0, off-diagonal ~ 0.
-    perfect_scores = model.scale * (s @ s.T)
-    perfect_loss = infonce_loss(perfect_scores, symmetric=False)
-    assert perfect_loss.item() < 0.01, f"expected near-zero loss, got {perfect_loss.item()}"
-
-    print("loss unit checks OK")
-    print(f"  batch size B:         {B}")
-    print(f"  random InfoNCE:       {loss_val.item():.6f}  (log(B) = {expected_random:.6f})")
-    print(f"  symmetric InfoNCE:    {loss_sym.item():.6f}")
-    print(f"  perfect-match loss:   {perfect_loss.item():.6f}")
-
-    # Optional reference check against Sentence-Transformers MultipleNegativesRankingLoss.
-    try:
-        from sentence_transformers.losses import MultipleNegativesRankingLoss
-    except ImportError:
-        print("  MNRL reference check: skipped (run with `uv run --with sentence-transformers python src/loss.py`)")
-        return
-
-    class _DummyModel(torch.nn.Module):
-        def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
-            return features
-
-    mnrl = MultipleNegativesRankingLoss(model=_DummyModel(), scale=model.scale.item())
-    ref_loss = mnrl([{"sentence_embedding": s}, {"sentence_embedding": a}], labels=None)
-    diff = (loss_val - ref_loss).abs().item()
-    assert torch.allclose(loss_val, ref_loss, atol=1e-6), (loss_val.item(), ref_loss.item(), diff)
-    print(f"  MNRL reference loss:  {ref_loss.item():.6f}  (abs diff = {diff:.2e})")
-
-
-if __name__ == "__main__":
-    _run_unit_checks()
+        # Filling all the false mask values with -inf
+        masked_scores = scores.masked_fill(~mask, float("-inf"))
+        return F.cross_entropy(masked_scores, target_idx)
